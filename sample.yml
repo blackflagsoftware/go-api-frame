@@ -1,0 +1,424 @@
+---
+openapi: 3.0.0
+info:
+  title: Groups Service Internal API V1
+  description: Internal API documentation for the Groups Service. Users with internal API access can make requests to these endpoints as well as those listed in the external v1 APIs.
+  version: "V1"
+servers:
+  - url: "https://<FQDN>/api/v1/"
+paths:
+  #
+  # Groups
+  # -------------------
+  #
+  /groups/{uid}:
+    parameters:
+      - $ref: "#/components/parameters/ContentTypeParam"
+      - $ref: "#/components/parameters/TenantHeaderParam"
+      - $ref: "#/components/parameters/GroupUidParam"
+    get:
+      summary: Get Group
+      description: Get Group
+      tags:
+        - Groups
+      responses:
+        "200":
+          description: Group
+          content:
+            application/vnd.api+json:
+              schema:
+                type: object
+                properties:
+                  jsonapi:
+                    $ref: "#/components/schemas/JsonAPI"
+                  data:
+                    $ref: "#/components/schemas/Group"
+        "400":
+          $ref: "#/components/responses/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/ErrorsResponseProgramNotFound"
+    delete:
+      summary: Delete Groups
+      description: Delete Groups
+      tags:
+        - Groups
+      responses:
+        "200":
+          description: Successful
+        "400":
+          $ref: "#/components/responses/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/ErrorsResponseProgramNotFound"
+  /groups/list:
+    parameters:
+      - $ref: "#/components/parameters/ContentTypeParam"
+      - $ref: "#/components/parameters/TenantHeaderParam"
+    get:
+      summary: Get Groups By Tenant Uid
+      description: Get Groups By Tenant Uid
+      tags:
+        - Groups
+      responses:
+        "200":
+          description: Groups
+          content:
+            application/vnd.api+json:
+              schema:
+                type: object
+                properties:
+                  jsonapi:
+                    $ref: "#/components/schemas/JsonAPI"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Group"
+        "400":
+          $ref: "#/components/responses/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/ErrorsResponseProgramNotFound"
+  /groups:
+    parameters:
+    - $ref: "#/components/parameters/ContentTypeParam"
+    - $ref: "#/components/parameters/TenantHeaderParam"
+    post:
+      summary: Create Group
+      description: Create Group
+      tags:
+        - Groups
+      requestBody:
+        description: "Group object to be added"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Group"
+        required: true
+      responses:
+        "200":
+          description: Group
+          content:
+            application/vnd.api+json:
+              schema:
+                type: object
+                properties:
+                  jsonapi:
+                    $ref: "#/components/schemas/JsonAPI"
+                  data:
+                    $ref: "#/components/schemas/Group"
+        "400":
+          $ref: "#/components/responses/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/ErrorsResponseProgramNotFound"
+    put:
+      summary: Update Group
+      description: Update Group
+      tags:
+        - Groups
+      requestBody:
+        description: "Group object to be updated"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Group"
+        required: true
+      responses:
+        "200":
+          description: Group
+          content:
+            application/vnd.api+json:
+              schema:
+                type: object
+                properties:
+                  jsonapi:
+                    $ref: "#/components/schemas/JsonAPI"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Group"
+        "400":
+          $ref: "#/components/responses/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/ErrorsResponseProgramNotFound"
+    patch:
+      summary: Update Group - Patch
+      description: Update Group - Patch
+      tags:
+        - Groups
+      requestBody:
+        description: "Group object to be updated"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Group"
+        required: true
+      responses:
+        "200":
+          description: Successful
+  
+components:
+  parameters:
+    ContentTypeParam:
+      name: Content-Type
+      in: header
+      required: true
+      schema:
+        type: string
+        description: The Content Type that is sent to the server
+        example: application/vnd.api+json
+    TenantHeaderParam:
+      name: X-Tenant
+      in: header
+      description: The tenant identifier
+      required: true
+      schema:
+        type: string
+        example: "tenant_uid01"
+    GroupUidParam:
+      name: uid
+      in: path
+      description: The group uid
+      required: true
+      schema:
+        type: string
+        example: "uid_01"
+  schemas:
+    JsonAPI:
+      type: object
+      properties:
+        version:
+          type: string
+          description: json:api specification version
+          example: "1.0"
+    Group:
+      type: object
+      properties:
+        Id:
+          type: number
+          description: group id
+          example: 1
+        Name:
+          type: string
+          description: name
+          example: "name"
+        TenantId:
+          type: number
+          description: tenant id
+          example: 1
+        TenantUid:
+          type: string
+          description: tenant uid
+          example: "uid"
+        AccountTypeIds:
+          type: string
+          description: account type ids
+          example: "account type ids"
+        DeviceTypeIds:
+          type: string
+          description: device type ids
+          example: "device type ids"
+        ServicePointZips:
+          type: string
+          description: service point zips 
+          example: "service point zips"
+        ServicePointZones:
+          type: string
+          description: service point zones
+          example: "service point zones"
+        ServicePointFeederIds:
+          type: string
+          description: service point feeder ids
+          example: "service point feeder ids"
+        ServicePointSubstationIds:
+          type: string
+          description: service point substation ids
+          example: "service point substation ids"
+        ServicePointTransformerIds:
+          type: string
+          description: service point transformer ids
+          example: "service point transformer ids"
+        HcmUid:
+          type: number
+          description: HcmUid
+          example: 1
+        Uid:
+          type: string
+          description: uid
+          example: "uid"
+        ServicePointDistributionSystemOperators:
+          type: string
+          description: service_point distribution system operators
+          example: "service_point distribution system operators"
+        ServicePointLoadServingEntities:
+          type: string
+          description: service point load serving entities
+          example: "service point load serving entities"
+        ServicePointSystems:
+          type: string
+          description: service point systems
+          example: "service point systems"
+        ServicePointIsoZones:
+          type: string
+          description: service point iso zones
+          example: "service point iso zones"
+        ServicePointWireSegmentIds:
+          type: string
+          description: service point wire segment ids
+          example: "service point wire segment ids"
+        ServicePointServiceVoltage:
+          type: string
+          description: service point service voltage
+          example: "service point service voltage"
+        ServicePointCharacteristics:
+          type: string
+          description: service point characteristics
+          example: "service point characteristics"
+        DeletedAt:
+          type: string
+          format: date-time
+          description: Deleted At 
+          example: "2018-11-01T05:00:00Z"
+        CreatedAt:
+          type: string
+          format: date-time
+          description: Created At 
+          example: "2018-11-01T05:00:00Z"
+        UpdatedAt:
+          type: string
+          format: date-time
+          description: Updated At 
+          example: "2018-11-01T06:00:00Z"
+    GroupPut:
+      type: object
+      properties:
+        Name:
+          type: string
+          description: name
+          example: "name"
+        TenantId:
+          type: number
+          description: tenant id
+          example: 1
+        TenantUid:
+          type: string
+          description: tenant uid
+          example: "uid"
+        AccountTypeIds:
+          type: string
+          description: account type ids
+          example: "account type ids"
+        DeviceTypeIds:
+          type: string
+          description: device type ids
+          example: "device type ids"
+        ServicePointZips:
+          type: string
+          description: service point zips 
+          example: "service point zips"
+        ServicePointZones:
+          type: string
+          description: service point zones
+          example: "service point zones"
+        ServicePointFeederIds:
+          type: string
+          description: service point feeder ids
+          example: "service point feeder ids"
+        ServicePointSubstationIds:
+          type: string
+          description: service point substation ids
+          example: "service point substation ids"
+        ServicePointTransformerIds:
+          type: string
+          description: service point transformer ids
+          example: "service point transformer ids"
+        HcmUid:
+          type: number
+          description: HcmUid
+          example: 1
+        Uid:
+          type: string
+          description: uid
+          example: "uid"
+        ServicePointDistributionSystemOperators:
+          type: string
+          description: service_point distribution system operators
+          example: "service_point distribution system operators"
+        ServicePointLoadServingEntities:
+          type: string
+          description: service point load serving entities
+          example: "service point load serving entities"
+        ServicePointSystems:
+          type: string
+          description: service point systems
+          example: "service point systems"
+        ServicePointIsoZones:
+          type: string
+          description: service point iso zones
+          example: "service point iso zones"
+        ServicePointWireSegmentIds:
+          type: string
+          description: service point wire segment ids
+          example: "service point wire segment ids"
+        ServicePointServiceVoltage:
+          type: string
+          description: service point service voltage
+          example: "service point service voltage"
+        ServicePointCharacteristics:
+          type: string
+          description: service point characteristics
+          example: "service point characteristics"
+        DeletedAt:
+          type: string
+          format: date-time
+          description: Deleted At 
+          example: "2018-11-01T05:00:00Z"
+        CreatedAt:
+          type: string
+          format: date-time
+          description: Created At 
+          example: "2018-11-01T05:00:00Z"
+        UpdatedAt:
+          type: string
+          format: date-time
+          description: Updated At 
+          example: "2018-11-01T06:00:00Z"
+    Error:
+      type: object
+      properties:
+        Id:
+          type: string
+          description: Unique Id for error
+          example: "ABC123"
+        Title:
+          type: string
+          description: Error Title
+          example: "Error Title"
+        Description:
+          type: string
+          description: Error Description
+          example: "Error Description"
+        Status:
+          type: string
+          description: Status Code
+          example: "400"
+  responses:
+    ErrorResponse:
+      description: Various System Errors
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              jsonapi:
+                $ref: "#/components/schemas/JsonAPI"
+              errors:
+                $ref: "#/components/schemas/Error"
+    ErrorsResponseProgramNotFound:
+      description: The specified resource was not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              jsonapi:
+                $ref: "#/components/schemas/JsonAPI"
+              errors:
+                $ref: "#/components/schemas/Error"

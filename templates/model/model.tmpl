@@ -1,0 +1,24 @@
+package {{.AllLower}}
+
+import (
+    "{{.ProjectPath}}/config"{{.ModelIncludeNull}}
+)
+
+type (
+    Storage{{.Camel}}Adapter interface {
+        Read(*{{.Camel}}) error
+        ReadAll(*[]{{.Camel}}) error
+        Create(*{{.Camel}}) error
+        Update(*{{.Camel}}) error
+        Delete(*{{.Camel}}) error
+    }
+
+    {{.Camel}} struct {
+{{.ModelRows}}
+    }
+)
+
+func InitStorage() Storage{{.Camel}}Adapter {
+{{.InitStorage}}
+    return nil
+}

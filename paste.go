@@ -27,7 +27,8 @@ func (p *Project) Paste() {
 		}
 		columns := []Column{}
 		tableName := ""
-		errParse, foundNull := sql.ParseLine(&tableName, &columns)
+		colExists := ColumnExistence{}
+		errParse := sql.ParseLine(&tableName, &columns, &colExists)
 		if errParse != nil {
 			fmt.Println(errParse)
 			break
@@ -36,7 +37,10 @@ func (p *Project) Paste() {
 		endPoint.Name.NameConverter()
 		endPoint.Columns = columns
 		endPoint.SqlLines = sql
-		endPoint.HaveNullColumns = foundNull
+		endPoint.ColumnExistence = colExists
+		if colExists.TimeColumn {
+			endPoint.GrpcImport = "\"time\""
+		}
 		p.EndPoints = append(p.EndPoints, endPoint)
 		cont := AskYesOrNo(p.Reader, "Paste another table schema (y/n)? ")
 		if !cont {

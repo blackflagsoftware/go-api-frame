@@ -11,7 +11,7 @@ import (
 	"text/template"
 )
 
-var tmplFiles = []string{"model", "handler", "manager", "grpc"} // TODO: sql is optional depending on which data storages they want to template, dynamically build this
+var tmplFiles = []string{"model", "rest", "manager", "grpc"} // TODO: sql is optional depending on which data storages they want to template, dynamically build this
 
 func (p *Project) LoadProjectFile() bool {
 	if _, errStat := os.Stat("./.frame"); os.IsNotExist(errStat) {

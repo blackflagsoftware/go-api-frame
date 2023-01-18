@@ -62,6 +62,8 @@ func TranslateType(columnName, columnType string, length int, valid bool) string
 		return fmt.Sprintf("%s: null.NewTime(time.Date(2022, time.January, 1, 0, 0, 0, 0, time.UTC), %t)", columnName, valid)
 	case "null.Bool":
 		return fmt.Sprintf("%s: null.NewBool(true, %t)", columnName, valid)
+	case "*json.RawMessage":
+		return fmt.Sprintf("%s: &json.RawMessage(\"{}\")", columnName)
 	default:
 		fmt.Println("Missing type in TranslateType:", columnType)
 	}

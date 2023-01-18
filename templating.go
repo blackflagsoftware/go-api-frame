@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -13,8 +12,8 @@ import (
 func (ep *EndPoint) BuildTemplateParts() {
 	// model
 	ep.BuildModelTemplate()
-	// handler
-	ep.BuildHandlerTemplate()
+	// rest
+	ep.BuildRestTemplate()
 	// manager
 	ep.BuildManagerTemplate()
 	// data
@@ -53,7 +52,7 @@ func (ep *EndPoint) BuildModelTemplate() {
 	ep.InitStorage = strings.Join(initStorage, "\n")
 }
 
-func (ep *EndPoint) BuildHandlerTemplate() {
+func (ep *EndPoint) BuildRestTemplate() {
 	// build get/delete url
 	getDeleteUrl := ""
 	foundOne := false
@@ -67,7 +66,7 @@ func (ep *EndPoint) BuildHandlerTemplate() {
 			}
 		}
 	}
-	ep.HandlerGetDeleteUrl = getDeleteUrl
+	ep.RestGetDeleteUrl = getDeleteUrl
 	// build get/delete assign and args
 	getDeleteAssign := ""
 	setArgs := ""
@@ -79,7 +78,7 @@ func (ep *EndPoint) BuildHandlerTemplate() {
 					getDeleteAssign += "\n"
 					setArgs += ", "
 				}
-				getDeleteAssign += fmt.Sprintf(HANDLER_PRIMARY_STR, c.ColumnName.Lower, c.ColumnName.Lower)
+				getDeleteAssign += fmt.Sprintf(REST_PRIMARY_STR, c.ColumnName.Lower, c.ColumnName.Lower)
 				setArgs += fmt.Sprintf("%s: %s", c.ColumnName.Camel, c.ColumnName.Lower)
 				foundOne = true
 			}
@@ -88,15 +87,15 @@ func (ep *EndPoint) BuildHandlerTemplate() {
 					getDeleteAssign += "\n"
 					setArgs += ", "
 				}
-				getDeleteAssign += fmt.Sprintf(HANDLER_PRIMARY_INT, c.ColumnName.Lower, c.ColumnName.Lower, c.ColumnName.Lower, c.ColumnName.Lower)
+				getDeleteAssign += fmt.Sprintf(REST_PRIMARY_INT, c.ColumnName.Lower, c.ColumnName.Lower, c.ColumnName.Lower, c.ColumnName.Lower)
 				setArgs += fmt.Sprintf("%s: int(%s)", c.ColumnName.Camel, c.ColumnName.Lower)
 				foundOne = true
-				ep.HandlerStrConv = "\n\t\"strconv\""
+				ep.RestStrConv = "\n\t\"strconv\""
 			}
 		}
 	}
-	ep.HandlerGetDeleteAssign = getDeleteAssign
-	ep.HandlerArgSet = setArgs
+	ep.RestGetDeleteAssign = getDeleteAssign
+	ep.RestArgSet = setArgs
 }
 
 func (ep *EndPoint) BuildManagerTemplate() {
@@ -137,10 +136,11 @@ func (ep *EndPoint) BuildManagerTemplate() {
 			setArgs += fmt.Sprintf("%s: %s", c.ColumnName.Camel, c.ColumnName.Lower)
 		}
 	}
-	patchRow = patchSearch + fmt.Sprintf(MANAGER_PATCH_STRUCT_STMT, ep.Abbr, ep.Camel, setArgs) + fmt.Sprintf(MANAGER_PATCH_GET_STMT, ep.Abbr)
+	// patchRow = patchSearch + fmt.Sprintf(MANAGER_PATCH_STRUCT_STMT, ep.Abbr, ep.Camel, setArgs) + fmt.Sprintf(MANAGER_PATCH_GET_STMT, ep.Abbr)
 	putTests := []PostPutTest{{Name: "successful", Failure: false}}
 	postTests := []PostPutTest{{Name: "successful", Failure: false}}
 	InitializeColumnTests()
+	sortColumns := []string{}
 	for _, c := range ep.Columns {
 		columnTestStrAdded := false
 		// put rows
@@ -187,39 +187,37 @@ func (ep *EndPoint) BuildManagerTemplate() {
 				columnTestStrAdded = true
 			}
 		}
+		if !c.PrimaryKey {
+			if ep.DefaultColumn == "" {
+				ep.DefaultColumn = c.ColumnName.RawName
+			}
+			sortColumns = append(sortColumns, fmt.Sprintf("\"%s\": \"%s\"", c.ColumnName.RawName, c.ColumnName.RawName))
+		}
 		if !columnTestStrAdded && c.Null && !c.PrimaryKey {
 			// add column to all the other tests with good data
 			AppendColumnTest(c.ColumnName.Camel, c.GoType, false)
 		}
 		// patch rows
-		if c.GoType == "null.String" {
-			if !c.PrimaryKey {
-				patchLenCheck := ""
-				if c.Length > 0 {
-					patchLenCheck = fmt.Sprintf(MANAGER_PATCH_VARCHAR_LEN, ep.Abbr, c.ColumnName.Camel, ep.Abbr, c.ColumnName.Camel, c.Length, c.ColumnName.Camel, c.Length)
+		if !c.PrimaryKey {
+			switch c.GoType {
+			case "null.String":
+				if !c.PrimaryKey {
+					patchLenCheck := ""
+					if c.Length > 0 {
+						patchLenCheck = fmt.Sprintf(MANAGER_PATCH_VARCHAR_LEN, ep.Abbr, c.ColumnName.Camel, ep.Abbr, c.ColumnName.Camel, c.Length, c.ColumnName.Camel, c.Length)
+					}
+					patchRow += fmt.Sprintf(MANAGER_PATCH_DEFAULT_ASSIGN, c.ColumnName.Camel, ep.Abbr, c.ColumnName.Camel, patchLenCheck, ep.Abbr, c.ColumnName.Camel, ep.Abbr, c.ColumnName.Camel)
 				}
-				patchRow += fmt.Sprintf(MANAGER_PATCH_STRING_NULL_ASSIGN, c.ColumnName.Camel, c.ColumnName.LowerCamel, c.ColumnName.Camel, c.ColumnName.Camel, c.ColumnName.Camel, patchLenCheck, ep.Abbr, c.ColumnName.Camel, c.ColumnName.LowerCamel)
+			case "null.Time":
+				ep.ManagerImportTest = "\n\t\"time\""
+				// ColCamel, Abbr, ColCamel, Abbr, ColCamel, ColCamel, Abbr, ColCamel, Abbr, ColCamel
+				patchRow += fmt.Sprintf(MANAGER_PATCH_TIME_NULL_ASSIGN, c.ColumnName.Camel, ep.Abbr, c.ColumnName.Camel, ep.Abbr, c.ColumnName.Camel, c.ColumnName.Camel, ep.Abbr, c.ColumnName.Camel, ep.Abbr, c.ColumnName.Camel)
+				ep.ManagerTime = "\n\t\"time\""
+			default:
+				patchRow += fmt.Sprintf(MANAGER_PATCH_DEFAULT_ASSIGN, c.ColumnName.Camel, ep.Abbr, c.ColumnName.Camel, "", ep.Abbr, c.ColumnName.Camel, ep.Abbr, c.ColumnName.Camel)
 			}
 		}
-		if c.GoType == "int" || c.GoType == "null.Int" {
-			if !c.PrimaryKey {
-				patchRow += fmt.Sprintf(MANAGER_PATCH_INT_NULL_ASSIGN, c.ColumnName.Camel, c.ColumnName.LowerCamel, c.ColumnName.Camel, c.ColumnName.Camel, c.ColumnName.Camel, ep.Abbr, c.ColumnName.Camel, c.ColumnName.LowerCamel)
-			}
-		}
-		if c.GoType == "null.Float" {
-			patchRow += fmt.Sprintf(MANAGER_PATCH_FLOAT_NULL_ASSIGN, c.ColumnName.Camel, c.ColumnName.LowerCamel, c.ColumnName.Camel, c.ColumnName.Camel, c.ColumnName.Camel, ep.Abbr, c.ColumnName.Camel, c.ColumnName.LowerCamel)
-		}
-		if c.GoType == "null.Bool" {
-			patchRow += fmt.Sprintf(MANAGER_PATCH_BOOL_NULL_ASSIGN, c.ColumnName.Camel, c.ColumnName.LowerCamel, c.ColumnName.Camel, c.ColumnName.Camel, c.ColumnName.Camel, ep.Abbr, c.ColumnName.Camel, c.ColumnName.LowerCamel)
-		}
-		if c.GoType == "*json.RawMessage" {
-			patchRow += fmt.Sprintf(MANAGER_PATCH_JSON_NULL_ASSIGN, c.ColumnName.Camel, c.ColumnName.Camel, c.ColumnName.LowerCamel, c.ColumnName.Camel, c.ColumnName.LowerCamel, c.ColumnName.Camel, ep.Abbr, c.ColumnName.Camel, c.ColumnName.LowerCamel)
-		}
-		if c.GoType == "null.Time" {
-			ep.ManagerImportTest = "\n\t\"time\""
-			patchRow += fmt.Sprintf(MANAGER_PATCH_TIME_NULL_ASSIGN, c.ColumnName.Camel, c.ColumnName.LowerCamel, c.ColumnName.Camel, c.ColumnName.Camel, c.ColumnName.Camel, c.ColumnName.LowerCamel, c.ColumnName.LowerCamel, c.ColumnName.Camel, ep.Abbr, c.ColumnName.Camel, c.ColumnName.LowerCamel)
-			ep.ManagerTime = "\n\t\"time\""
-		}
+		ep.SortColumns = strings.Join(sortColumns, ", ")
 	}
 	uuidColumn := ""
 	for _, c := range ep.Columns {
@@ -382,11 +380,15 @@ func (ep *EndPoint) BuildDataTemplate() {
 	ep.SqlPostColumnsNamed = strings.TrimRight(postColumnNames, "\n")
 	ep.SqlPatchColumns = strings.TrimRight(patchColumn, "\n")
 	ep.SqlPatchWhere = patchKeys
+	ep.SqlPostQuery = fmt.Sprintf(SQL_POST_QUERY, ep.Abbr)
 	if foundSerial != "" {
+		ep.SqlPostQuery = fmt.Sprintf(SQL_POST_QUERY_MYSQL, ep.Abbr)
+		ep.SqlPostLastId = fmt.Sprintf(SQL_LAST_ID_MYSQL, ep.Camel, ep.Abbr, foundSerial)
 		if ep.SQLProvider == POSTGRESQL {
 			ep.SqlPostReturning = fmt.Sprintf(" returning %s", foundSerialDB)
+			ep.SqlPostQuery = fmt.Sprintf(SQL_POST_QUERY_POSTGRES, ep.Abbr)
+			ep.SqlPostLastId = fmt.Sprintf(SQL_LAST_ID_POSTGRES, ep.Abbr, foundSerial)
 		}
-		ep.SqlPostLastId = fmt.Sprintf(DATA_LAST_ID, ep.Abbr, foundSerial)
 	}
 	ep.FileKeys = strings.Join(fileKey, " && ")
 	ep.FileGetColumns = strings.Join(fileGetColumn, "\n\t\t\t")
@@ -461,7 +463,7 @@ func (ep *EndPoint) BuildGrpc() {
 				outLine = fmt.Sprintf("\tproto%s.%s = %s.%s.String", ep.Camel, column.ColumnName.Camel, ep.Abbr, column.ColumnName.Camel)
 				inLine = fmt.Sprintf("\t%s.%s.Scan(in.%s)", ep.Abbr, column.ColumnName.Camel, column.ColumnName.Camel)
 			}
-			if column.GoType == "time.Time" {
+			if column.GoType == "null.Time" {
 				outLine = fmt.Sprintf("\tproto%s.%s = %s.%s.Time.Format(time.RFC3339)", ep.Camel, column.ColumnName.Camel, ep.Abbr, column.ColumnName.Camel)
 			}
 			if column.GoType == "null.Time" {
@@ -541,7 +543,7 @@ func (ep *EndPoint) BuildAPIHooks() {
 		if errServer != nil {
 			fmt.Printf("%s: template error [%s]\n", apiFile, errServer)
 		} else {
-			cmdServer := fmt.Sprintf(`perl -pi -e 's/\/\/ --- replace server header text ---/%s/g' %s`, mainReplace.String(), apiFile)
+			cmdServer := fmt.Sprintf(`perl -pi -e 's/\/\/ --- replace main header text - do not remove ---/%s/g' %s`, mainReplace.String(), apiFile)
 			execServer := exec.Command("bash", "-c", cmdServer)
 			errServerCmd := execServer.Run()
 			if errServerCmd != nil {
@@ -564,36 +566,6 @@ func (ep *EndPoint) BuildAPIHooks() {
 			}
 		}
 	}
-	// hook into common file
-	commonFile := fmt.Sprintf("%s/%s/common.go", ep.ProjectFile.FullPath, ep.SubDir)
-	if _, err := os.Stat(commonFile); os.IsNotExist(err) {
-		// create file if not there
-		commonSrc := fmt.Sprintf("%s/templates/common.go", os.Getenv("FRAME_PATH"))
-		commonDest := fmt.Sprintf("%s/%s/common.go", ep.ProjectFile.FullPath, ep.ProjectFile.SubDir)
-		bSrc, errSrc := ioutil.ReadFile(commonSrc)
-		if errSrc != nil {
-			fmt.Println("Unable to read common.go")
-		} else {
-			errWrite := ioutil.WriteFile(commonDest, bSrc, 0644)
-			if errWrite != nil {
-				fmt.Println("Unable to write common.go")
-			}
-		}
-		var importReplace bytes.Buffer
-		tImport := template.Must(template.New("import").Parse(COMMON_IMPORT))
-		errImport := tImport.Execute(&importReplace, ep)
-		if errImport != nil {
-			fmt.Println("Import template error:", errImport)
-		} else {
-			cmdImport := fmt.Sprintf(`perl -pi -e 's/\/\/ --- replace import text - do not remove ---/%s/g' %s`, importReplace.String(), commonFile)
-			execImport := exec.Command("bash", "-c", cmdImport)
-			errImportCmd := execImport.Run()
-			if errImportCmd != nil {
-				fmt.Println("Error in replace for import:", errImportCmd)
-			}
-		}
-	}
-	// cont. with common.go
 	// header
 	var headerReplace bytes.Buffer
 	tHeader := template.Must(template.New("header").Parse(COMMON_HEADER))
@@ -602,13 +574,6 @@ func (ep *EndPoint) BuildAPIHooks() {
 		fmt.Println("Header template error:", errHeader)
 		return
 	}
-	cmdHeader := fmt.Sprintf(`perl -pi -e 's/\/\/ --- replace header text - do not remove ---/%s/g' %s`, headerReplace.String(), commonFile)
-	execHeader := exec.Command("bash", "-c", cmdHeader)
-	errHeaderCmd := execHeader.Run()
-	if errHeaderCmd != nil {
-		fmt.Println("Error in replace for header:", errHeaderCmd)
-	}
-
 	// section
 	var sectionReplace bytes.Buffer
 	tSection := template.Must(template.New("section").Parse(COMMON_SECTION))
@@ -616,12 +581,6 @@ func (ep *EndPoint) BuildAPIHooks() {
 	if errSection != nil {
 		fmt.Println("Section template error:", errSection)
 		return
-	}
-	cmdSection := fmt.Sprintf(`perl -pi -e 's/\/\/ --- replace section text - do not remove ---/%s/g' %s`, sectionReplace.String(), commonFile)
-	execSection := exec.Command("bash", "-c", cmdSection)
-	errSectionCmd := execSection.Run()
-	if errSectionCmd != nil {
-		fmt.Println("Error in replace for server:", errSectionCmd)
 	}
 	// hook into grpc file
 	grpcFile := fmt.Sprintf("%s/cmd/grpc/main.go", ep.ProjectFile.FullPath)

@@ -16,7 +16,7 @@ func GormInit() *gorm.DB {
 		var err error
 		GormDB, err = gorm.Open({{.SQLProviderLower}}.Open(connectionStr), &gorm.Config{NamingStrategy: schema.NamingStrategy{SingularTable: true}})
 		if err != nil {
-			log.Panicln("Could not connect with connection string:", connectionStr)
+			log.Panicln("Could not connect to the DB:", err)
 		}
 	}
 	return GormDB

@@ -23,7 +23,7 @@ func (d *File{{.Camel}}) Get({{.Abbr}} *{{.Camel}}) error {
 	return nil
 }
 
-func (d *File{{.Camel}}) List({{.Abbr}} *[]{{.Camel}}) error {
+func (d *File{{.Camel}}) Select({{.Abbr}} *[]{{.Camel}}) error {
 	return storage.OpenFile(config.StorageFileDir, {{.Abbr}})
 }
 

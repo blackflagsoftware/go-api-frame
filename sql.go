@@ -7,11 +7,11 @@ import (
 	"strings"
 )
 
-func (s *Sql) ParseLine(tableName *string, cols *[]Column) (error, bool) {
+func (s *Sql) ParseLine(tableName *string, cols *[]Column, colExists *ColumnExistence) error {
 	sql := formatSql(s.RawSql)
 	openParenIdx, closeParenIdx, err := determineCorrectFormat(sql)
 	if err != nil {
-		return err, false
+		return err
 	}
 	*tableName = determineTableName(sql[:openParenIdx])
 	colRows := breakCols(sql[openParenIdx+1 : closeParenIdx])
@@ -31,13 +31,13 @@ func (s *Sql) ParseLine(tableName *string, cols *[]Column) (error, bool) {
 			continue
 		}
 		column := Column{}
-		if errParse := ParseColumn(colStr, &column); errParse != nil {
+		if errParse := ParseColumn(colStr, &column, colExists); errParse != nil {
 			fmt.Printf("skipping column: %s - %s\n", colStr, errParse)
 			continue
 		}
 		columns = append(columns, column)
 		if column.Null && !foundNull {
-			foundNull = true
+			colExists.HaveNullColumns = true
 		}
 	}
 	if len(primaryKeys) > 0 {
@@ -51,10 +51,10 @@ func (s *Sql) ParseLine(tableName *string, cols *[]Column) (error, bool) {
 		}
 	}
 	*cols = append(*cols, columns...)
-	return nil, foundNull
+	return nil
 }
 
-func ParseColumn(colStr string, column *Column) error {
+func ParseColumn(colStr string, column *Column, colExists *ColumnExistence) error {
 	varcharMatch := regexp.MustCompile(`^varchar[\(]\d+[\)]`)
 	varyingMatch := regexp.MustCompile(`^varying[\(]\d+[\)]`)
 	charMatch := regexp.MustCompile(`^char[\(]\d+[\)]`)
@@ -92,6 +92,10 @@ func ParseColumn(colStr string, column *Column) error {
 	}
 	toLower := strings.ToLower(split[1])
 	switch {
+	case strings.Contains(toLower, "tinyint"):
+		column.DBType = toLower
+		column.GoType = "null.Bool"
+		column.GoTypeNonSql = "bool"
 	case strings.Contains(toLower, "int"):
 		column.DBType = toLower
 		column.GoType = "null.Int"
@@ -100,7 +104,7 @@ func ParseColumn(colStr string, column *Column) error {
 		column.DBType = "numeric"
 		column.GoType = "null.Float"
 		column.GoTypeNonSql = "float64"
-	case toLower == "decimal" || toLower == "dec":
+	case strings.Contains(toLower, "dec"):
 		column.DBType = "decimal"
 		column.GoType = "null.Float"
 		column.GoTypeNonSql = "float64"
@@ -136,10 +140,12 @@ func ParseColumn(colStr string, column *Column) error {
 		column.DBType = toLower
 		column.GoType = "null.Time"
 		column.GoTypeNonSql = "time.Time"
+		colExists.TimeColumn = true
 	case toLower == "date":
 		column.DBType = "date"
 		column.GoType = "null.Time"
 		column.GoTypeNonSql = "time.Time"
+		colExists.TimeColumn = true
 	case toLower == "uuid":
 		column.DBType = "uuid"
 		column.GoType = "string"

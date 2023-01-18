@@ -1,10 +1,11 @@
 package {{.AllLower}}
 
 import (
-	"encoding/json"{{.ManagerTime}}
+	{{.ManagerTime}}
 
 	g "github.com/Jeffail/gabs"
 	ae "{{.ProjectPath}}/internal/api_error"
+	"{{.ProjectPath}}/internal/util"
 	{{.ManagerUtilPath}}
 )
 
@@ -12,7 +13,7 @@ import (
 type (
 	Data{{.Camel}}Adapter interface {
 		Read(*{{.Camel}}) error
-		ReadAll(*[]{{.Camel}}) error
+		Select(*[]{{.Camel}}, {{.Camel}}Param) error
 		Create(*{{.Camel}}) error
 		Update(*{{.Camel}}) error
 		Delete(*{{.Camel}}) error
@@ -32,8 +33,10 @@ func (m *Manager{{.Camel}}) Get({{.Abbr}} *{{.Camel}}) error {
 	return m.data{{.Camel}}.Read({{.Abbr}})
 }
 
-func (m *Manager{{.Camel}}) List({{.Abbr}} *[]{{.Camel}}) error {
-	return m.data{{.Camel}}.ReadAll({{.Abbr}})
+func (m *Manager{{.Camel}}) Search({{.Abbr}} *[]{{.Camel}}, {{.LowerCamel}}Param {{.Camel}}Param) error {
+	{{.LowerCamel}}Param.Param.CalculateParam({{.DefaultColumn}}, map[string]{ {{.SortColumn })
+
+	return m.data{{.Camel}}.Select({{.Abbr}}, {{.LowerCamel}}Camel)
 }
 
 func (m *Manager{{.Camel}}) Post({{.Abbr}} *{{.Camel}}) error {
@@ -58,16 +61,4 @@ func (m *Manager{{.Camel}}) Patch(body []byte) error {
 func (m *Manager{{.Camel}}) Delete({{.Abbr}} *{{.Camel}}) error {
 {{.ManagerGetRow}}
 	return m.data{{.Camel}}.Delete({{.Abbr}})
-}
-
-func ValidJson(jsonValue json.RawMessage) bool {
-    bValue, err := jsonValue.MarshalJSON()
-    if err != nil {
-        return false
-    }
-    check := make(map[string]interface{}, 0)
-    if errCheck := json.Unmarshal(bValue, &check); errCheck != nil {
-        return false
-    }
-    return true
 }

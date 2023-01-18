@@ -30,7 +30,7 @@ func (d *Mongo{{.Camel}}) Read({{.Abbr}} *{{.Camel}}) error {
 	return nil
 }
 
-func (d *Mongo{{.Camel}}) ReadAll({{.Abbr}} *[]{{.Camel}}) error {
+func (d *Mongo{{.Camel}}) Select({{.Abbr}} *[]{{.Camel}}) error {
 	collection := d.DB.Database("{{.Lower}}").Collection("{{.Abbr}}")
 	filter := bson.D{}
 	cur, err := collection.Find(context.TODO(), filter)

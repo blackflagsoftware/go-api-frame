@@ -12,15 +12,15 @@ const (
 	MODEL_COLUMN_W_GORM  = "\t\t%s\t%s\t`db:\"%s\" json:\"%s\" gorm:\"column:%s\"`"
 	MODEL_COLUMN_WO_GORM = "\t\t%s\t%s\t`db:\"%s\" json:\"%s\"`"
 
-	HANDLER_PRIMARY_INT = `	%sStr := c.Param("%s")
+	REST_PRIMARY_INT = `	%sStr := c.Param("%s")
 	%s, err := strconv.ParseInt(%sStr, 10, 64)
 	if err != nil {
 		bindErr := ae.ParseError("Invalid param value, not a number")
 		return c.JSON(bindErr.StatusCode, s.NewOutput(bindErr.BodyError(), &bindErr))
 	}`  // Lower, Lower, Lower, Lower
-	HANDLER_PRIMARY_STR = `	%s := c.Param("%s")` // Lower, Lower
-	HANDLER_GET_DELETE  = `	%s := &%s{%s}`       // CamelLower, Camel, HandlerArgSet
-	MANAGER_GET_INT     = `	if %s.%s < 1 {
+	REST_PRIMARY_STR = `	%s := c.Param("%s")` // Lower, Lower
+	REST_GET_DELETE  = `	%s := &%s{%s}`       // CamelLower, Camel, RestArgSet
+	MANAGER_GET_INT  = `	if %s.%s < 1 {
 		return ae.MissingParamError("%s")
 	}
 	`  // Abbr, Camel, Camel
@@ -77,6 +77,11 @@ const (
 		%s.%s = int64(%s)
 	}
 	`  // ColCamel, ColLower, ColCamel, ColCamel, ColCamel, Abbr, ColCamel, ColLower
+	MANAGER_PATCH_DEFAULT_ASSIGN = `// %s
+	if %s.%s.Valid {%s
+		%s.%s = %sIn.%s
+	}
+	`  // ColCamel, Abbr, ColCamel, StringLenCheck, Abbr, ColCamel, Abbr. ColCamel
 	MANAGER_PATCH_INT_NULL_ASSIGN = `// %s
 	%s, ok%s := jParsed.Search("%s").Data().(float64)
 	if ok%s {
@@ -104,27 +109,35 @@ const (
 	MANAGER_PATCH_JSON_NULL_ASSIGN = `// %s
 	if jParsed.Exists("%s") {
 		%s := json.RawMessage(jParsed.Search("%s").Bytes())
-		if !ValidJson(*%s) {
+		if !util.ValidJson(*%s) {
 			return ae.ParseError("Invalid JSON syntax for %s")
 		}
 		%s.%s = &%s
 	}
 	`  // ColCamel, ColCamel, ColLowerCamel, ColCamel, ColLowerCamel, ColCamel, Abbr, ColCamel, ColLowerCamel
 	MANAGER_PATCH_TIME_NULL_ASSIGN = `// %s
-	%s, ok%s := jParsed.Search("%s").Data().(string)
-	if ok%s {
-		%sTime, errParse := time.Parse(time.RFC3339, %s)
+	if %s.%s.Valid {
+		_, errParse := time.Parse(time.RFC3339, %s.%s.Time.String())
 		if errParse != nil {
 			return ae.ParseError("%s: unable to parse time")
 		}
-		%s.%s.Scan(%sTime)
+		%s.%s = %sIn.%s
 	}
-	`  // ColCamel, ColLowerCamel, ColCamel, ColCamel, ColCamel, ColLowerCamel, ColLowerCamel, ColCamel, Abbr, ColCamel, ColLowerCamel
+	`  // ColCamel, Abbr, ColCamel, Abbr, ColCamel, ColCamel, Abbr, ColCamel, Abbr, ColCamel
 	MANAGER_PATCH_VARCHAR_LEN = `
 			if %s.%s.Valid && len(%s.%s.ValueOrZero()) > %d {
 				return ae.StringLengthError("%s", %d)
 		}`  // Abbr, ColumnCamel, Abbr, ColumnCamel, ColumnLength, ColumnCamel, ColumnLength
-	DATA_LAST_ID = `var lastId int64
+	SQL_POST_QUERY       = `_, errDB := d.DB.NamedExec(sqlPost, %s)`      // Abbr
+	SQL_POST_QUERY_MYSQL = `result, errDB := d.DB.NamedExec(sqlPost, %s)` // Abbr
+	SQL_LAST_ID_MYSQL    = `lastId, err := result.LastInsertId()
+	if err != nil {
+		return ae.DBError("%s Create: unable to get lastid.", err)
+	}
+	%s.%s = int(lastId)
+	`  // Camel, Abbr, ColCamel
+	SQL_POST_QUERY_POSTGRES = `rows, errDB := d.DB.NamedQuery(sqlPost, %s)` // Abbr
+	SQL_LAST_ID_POSTGRES    = `var lastId int64
 	if rows.Next() {
 		rows.Scan(&lastId)
 	}
@@ -132,8 +145,8 @@ const (
 	`  // Abbr, ColCamel
 
 	// TESTS
-	HANDLER_TEST_INT_FAILURE = `
-	func Test%sHandlerGetFailureInvalidInt(t *testing.T) {
+	REST_TEST_INT_FAILURE = `
+	func Test%sRestGetFailureInvalidInt(t *testing.T) {
 		e := echo.New()
 		req := httptest.NewRequest(echo.GET, "/", nil)
 		rec := httptest.NewRecorder()
@@ -143,7 +156,7 @@ const (
 		c.SetParamValues("a")
 	
 		man := &MockManager%s{}
-		h := NewHandler%s(man)
+		h := NewRest%s(man)
 	
 		h.Get(c)
 	
@@ -153,8 +166,8 @@ const (
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 		assert.Equal(t, "Invalid param value, not a number", be.Detail)
 	}`  // camel, get_delete_url, col_lower, camel, camel
-	HANDLER_TEST_INT_ZERO = `
-	func Test%sHandlerGetFailureZeroInt(t *testing.T) {
+	REST_TEST_INT_ZERO = `
+	func Test%sRestGetFailureZeroInt(t *testing.T) {
 		e := echo.New()
 		req := httptest.NewRequest(echo.GET, "/", nil)
 		rec := httptest.NewRecorder()
@@ -164,7 +177,7 @@ const (
 		c.SetParamValues("0")
 	
 		man := &MockManager%s{}
-		h := NewHandler%s(man)
+		h := NewRest%s(man)
 	
 		h.Get(c)
 	
@@ -175,9 +188,11 @@ const (
 		assert.Equal(t, "zero value", be.Detail)
 	}`  // camel, get_delete_url, col_lower, camel, camel
 
-	MAIN_COMMON_PATH = `{{.ProjectFile.SubPackage}} "{{.ProjectFile.ProjectPathEncoded}}\/internal\/{{.ProjectFile.SubPackage}}"`
+	MAIN_COMMON_PATH = `"{{.ProjectFile.ProjectPathEncoded}}\/internal\/{{.ProjectFile.SubPackage}}\/{{.Name.AllLower}}"
+	\/\/ --- replace main header text - do not remove ---
+`
 
-	SERVER_ROUTE = `{{.ProjectFile.SubPackage}}.Setup{{.Name.Camel}}(routeGroup)
+	SERVER_ROUTE = `{{.Name.AllLower}}.InitializeRest(routeGroup)
 	\/\/ --- replace server text - do not remove ---
 `
 	COMMON_IMPORT = `
@@ -193,7 +208,7 @@ import (
 func Setup{{.Camel}}(eg *echo.Group) {
 	sl := {{.Abbr}}.InitStorage()
 	ml := {{.Abbr}}.NewManager{{.Camel}}(sl)
-	hl := {{.Abbr}}.NewHandler{{.Camel}}(ml)
+	hl := {{.Abbr}}.NewRest{{.Camel}}(ml)
 	hl.Load{{.Camel}}Routes(eg)
 }
 	

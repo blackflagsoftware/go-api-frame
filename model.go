@@ -30,54 +30,59 @@ type (
 	}
 
 	EndPoint struct {
-		Columns                []Column
-		ModelIncludeNull       string
-		ModelRows              string
-		HandlerStrConv         string
-		HandlerGetDeleteUrl    string
-		HandlerGetDeleteAssign string
-		HandlerArgSet          string
-		ManagerTime            string
-		ManagerGetRow          string
-		ManagerPostRows        string
-		ManagerPutRows         string
-		ManagerPatchRows       string
-		ManagerGetTestRow      string
-		ManagerPostTestRow     string
-		ManagerPutTestRow      string
-		ManagerDeleteTestRow   string
-		ManagerUtilPath        string
-		ManagerImportTest      string
-		DataTable              string
-		DataTablePrefix        string
-		DataTablePostfix       string
-		SqlGetColumns          string
-		SqlTableKeyKeys        string
-		SqlTableKeyValues      string
-		SqlTableKeyListOrder   string
-		SqlPostColumns         string
-		SqlPostColumnsNamed    string
-		SqlPostReturning       string
-		SqlPostLastId          string
-		SqlPatchColumns        string
-		SqlPatchWhere          string
-		SqlPatchWhereValues    string
-		FileKeys               string
-		FileGetColumns         string
-		FilePostIncr           string
-		HaveNullColumns        bool
-		SqlLines               Sql
-		InitStorage            string // holds the formatted lines for InitStorage for model
-		SQLProvider            string // optional if using SQL as a storage, either Psql, MySql or Sqlite; this interfaces with sqlx
-		SQLProviderLower       string // optional if using SQL as a storage, either psql, mysql or sqlite; this interfaces with gorm
-		SQLProviderConnection  string // holds the connection string for gorm of the other sql types
-		MigrationVerify        string
-		MigrationConnection    string
-		MigrationHeader        string
-		GrpcTranslateIn        string
-		GrpcTranslateOut       string
+		Columns               []Column
+		ModelIncludeNull      string
+		ModelRows             string
+		RestStrConv           string
+		RestGetDeleteUrl      string
+		RestGetDeleteAssign   string
+		RestArgSet            string
+		ManagerTime           string
+		ManagerGetRow         string
+		ManagerPostRows       string
+		ManagerPutRows        string
+		ManagerPatchRows      string
+		ManagerGetTestRow     string
+		ManagerPostTestRow    string
+		ManagerPutTestRow     string
+		ManagerDeleteTestRow  string
+		ManagerUtilPath       string
+		ManagerImportTest     string
+		DataTable             string
+		DataTablePrefix       string
+		DataTablePostfix      string
+		SqlGetColumns         string
+		SqlTableKeyKeys       string
+		SqlTableKeyValues     string
+		SqlTableKeyListOrder  string
+		SqlPostColumns        string
+		SqlPostColumnsNamed   string
+		SqlPostReturning      string
+		SqlPostQuery          string
+		SqlPostLastId         string
+		SqlPatchColumns       string
+		SqlPatchWhere         string
+		SqlPatchWhereValues   string
+		FileKeys              string
+		FileGetColumns        string
+		FilePostIncr          string
+		HaveNullColumns       bool
+		SqlLines              Sql
+		InitStorage           string // holds the formatted lines for InitStorage for model
+		SQLProvider           string // optional if using SQL as a storage, either Psql, MySql or Sqlite; this interfaces with sqlx
+		SQLProviderLower      string // optional if using SQL as a storage, either psql, mysql or sqlite; this interfaces with gorm
+		SQLProviderConnection string // holds the connection string for gorm of the other sql types
+		MigrationVerify       string
+		MigrationConnection   string
+		MigrationHeader       string
+		GrpcTranslateIn       string
+		GrpcTranslateOut      string
+		GrpcImport            string
+		DefaultColumn         string
+		SortColumns           string
 		Name
 		ProjectFile
+		ColumnExistence
 	}
 
 	Name struct {
@@ -100,6 +105,11 @@ type (
 		DefaultValue string
 		Length       int64
 		PrimaryKey   bool
+	}
+
+	ColumnExistence struct {
+		HaveNullColumns bool
+		TimeColumn      bool
 	}
 
 	Sql struct {

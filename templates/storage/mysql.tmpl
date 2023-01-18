@@ -19,7 +19,7 @@ func MySqlInit() *sqlx.DB {
 		var err error
 		MysqlDB, err = sqlx.Connect("mysql", mySqlConnection)
 		if err != nil {
-			log.Panicln("Could not connect with connection string:", mySqlConnection)
+			log.Panicln("Could not connect to the DB:", err)
 		}
 	}
 	return MysqlDB

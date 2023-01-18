@@ -5,6 +5,7 @@ import (
 
 	ae "{{.ProjectPath}}/internal/api_error"
 	stor "{{.ProjectPath}}/internal/storage"
+	"{{.ProjectPath}}/internal/util"
 )
 
 type (
@@ -29,13 +30,17 @@ func (d *SQL{{.Camel}}) Read({{.Abbr}} *{{.Camel}}) error {
 	return nil
 }
 
-func (d *SQL{{.Camel}}) ReadAll({{.Abbr}} *[]{{.Camel}}) error {
-	sqlList := {{.DataTablePrefix}}`
+func (d *SQL{{.Camel}}) Select({{.Abbr}} *[]{{.Camel}}, {{.LowerCamel}}Param {{.Camel}}Param) error {
+	args := []interface{}{}
+	searchStr := util.BuildSearchString({{.LowerCamel}}Param.Search, false, &args)
+	sqlSearch := fmt.Sprintf(`
 		SELECT
 			{{.SqlGetColumns}}
-		FROM {{.DataTable}} ORDER BY {{.SqlTableKeyListOrder}}`{{.DataTablePostfix}}
-	if errDB := d.DB.Select({{.Abbr}}, sqlList); errDB != nil {
-		return ae.DBError("{{.Camel}} List: unable to select records.", errDB)
+		FROM {{.DataTable}}
+		%s
+		ORDER BY %s %s`, searchStr, {{.LowerCamel}}Param.Sort {{.LowerCamel}}Para.Limit)
+	if errDB := d.DB.Select({{.Abbr}}, sqlSearch, args...); errDB != nil {
+		return ae.DBError("{{.Camel}} Search: unable to select records.", errDB)
 	}
 	return nil
 }
@@ -47,7 +52,7 @@ func (d *SQL{{.Camel}}) Create({{.Abbr}} *{{.Camel}}) error {
 		) VALUES (
 			{{.SqlPostColumnsNamed}}
 		){{.SqlPostReturning}}`{{.DataTablePostfix}}
-	rows, errDB := d.DB.NamedQuery(sqlPost, {{.Abbr}})
+	{{.SqlPostQuery}}
 	if errDB != nil {
 		return ae.DBError("{{.Camel}} Post: unable to insert record.", errDB)
 	}

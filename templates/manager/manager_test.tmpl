@@ -1,7 +1,6 @@
 package {{.AllLower}}
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"{{.ManagerImportTest}}
 
@@ -152,31 +151,6 @@ func TestManager{{.Camel}}_Delete(t *testing.T) {
 			if tt.wantErr {
 				assert.NotNil(t, err, "Manager{{.Camel}}.Delete().%s => expected error: got nil", tt.name)
 			}
-		})
-	}
-}
-
-func TestValidJson(t *testing.T) {
-	tests := []struct {
-		name      string
-		jsonValue json.RawMessage
-		want      bool
-	}{
-		{
-			"successful",
-			[]byte(`{"test": "again"}`),
-			true,
-		},
-		{
-			"failed",
-			[]byte(`{"test": again"}`),
-			false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := ValidJson(tt.jsonValue)
-			assert.Equal(t, tt.want, got, "ValidJson.%s => expected %t; got %t", tt.name, tt.want, got)
 		})
 	}
 }

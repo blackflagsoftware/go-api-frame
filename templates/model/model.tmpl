@@ -1,24 +1,22 @@
 package {{.AllLower}}
 
 import (
-    "{{.ProjectPath}}/config"{{.ModelIncludeNull}}
+    "{{.ProjectPath}}/config"
+    "{{.ProjectPath}}/internal/util"{{.ModelIncludeNull}}
 )
 
 type (
-    Storage{{.Camel}}Adapter interface {
-        Read(*{{.Camel}}) error
-        ReadAll(*[]{{.Camel}}) error
-        Create(*{{.Camel}}) error
-        Update(*{{.Camel}}) error
-        Delete(*{{.Camel}}) error
-    }
-
     {{.Camel}} struct {
 {{.ModelRows}}
     }
+
+    {{.Camel}}Param struct {
+        // TODO: add any other custom params here
+        util.Param
+    }
 )
 
-func InitStorage() Storage{{.Camel}}Adapter {
+func InitStorage() Data{{.Camel}}Adapter {
 {{.InitStorage}}
     return nil
 }
